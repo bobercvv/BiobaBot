@@ -1,9 +1,5 @@
 import telebot
-import webbrowser # Для перенаправления на сайт
-from telebot import types # Для добавления кнопок под сообщениями
-import sqlite3 # Импортирование библиотеки для работы с БД
 from currency_converter import CurrencyConverter # Библиотека для конвертации валют
-import currencies
 
 bot = telebot.TeleBot('7112434036:AAH_OtIUf4MCNXAqXzjcRdBA4nra6UOAkTY') # Указание токена на бота
 

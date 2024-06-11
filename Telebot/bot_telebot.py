@@ -1,14 +1,16 @@
+import os # Для работы с .env
+from dotenv import find_dotenv, load_dotenv # инструменты для работы с переменнвыми окружения
+load_dotenv(find_dotenv()) # получение всех данных из .env
+
 import telebot
 import webbrowser # Для перенаправления на сайт
 from telebot import types # Для добавления кнопок под сообщениями
 import re # Работа с регулярными выражениями
 
 from currency_converter import CurrencyConverter # Библиотека для конвертации валют
-import currencies, users_database
+import users_database, currencies
 
-bot = telebot.TeleBot() # Указание токена на бота
-payment_token = ''
-users = []
+bot = telebot.TeleBot(token=os.getenv("TOKEN")) # Указание токена на бота
 
 currency = CurrencyConverter()
 
@@ -28,7 +30,7 @@ def menu_command(message):
     button2 = types.InlineKeyboardButton("Курсы валют", callback_data="Курсы валют")
     button3 = types.InlineKeyboardButton("Рассчёт стоимости товара", callback_data="Рассчёт стоимости товара")
     markup.add(button1,button2,button3)
-    file = open('./smile.jpg', 'rb') # 'rb' - открытие на чтение
+    file = open('../smile.jpg', 'rb') # 'rb' - открытие на чтение
     bot.send_photo(message.chat.id, file) # отправление файла в чат
     bot.send_message(message.chat.id, "Вы перенаправлены в меню BiobaBot 😤", reply_markup=markup)
 
