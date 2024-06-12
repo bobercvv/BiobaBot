@@ -7,7 +7,7 @@ def make_kbd(
         placeholder: str = None,
         request_contact: int = None,
         request_location: int = None,
-        sizes: tuple[int] = (2,),
+        sizes: tuple[int]
 ):
     '''
     Parameters request_contact and request_location must be as indexes of btns args for buttons you need.
@@ -39,32 +39,71 @@ def make_kbd(
         resize_keyboard=True, input_field_placeholder=placeholder)
 
 
+
+
+# КЛАВИТУРЫ
+
+# УДАЛЕНИЕ КЛАВИАТУРЫ
 del_kbd = ReplyKeyboardRemove()
 
+
+
+# СТАРТОВАЯ КЛАВИАТУРА
 start_kbd = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="Меню"),
         ],
+        [
+            KeyboardButton(text="Расчёт стоимости товара"),
+            KeyboardButton(text="С каких площадок доставляете?"),
+        ],
+        [
+            KeyboardButton(text="Сайт"),
+            KeyboardButton(text="Контакты"),
+        ]
     ],
     resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
 )
 
+
+
+# МЕНЮ КЛАВИАТУРА
 menu_kbd = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="Расчёт стоимости товара"),
-
+            KeyboardButton(text="Моя корзина"),
         ],
         [
-            KeyboardButton(text="Получение контактов", request_contact=True),
-            KeyboardButton(text="Получение геопозиции", request_location=True),
-            KeyboardButton(text="Создать опрос", request_poll=KeyboardButtonPollType())
-        ],
+            KeyboardButton(text="FAQ"),
+        ]
     ],
     resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
 )
 
+# КЛАВИАТУРА ТИПОВ ТВОАРОВ
+categories = ["обувь", "футболка", "штаны", "нижнее бельё", "верхняя одежда", "аксессуар"]
+type_product_kbd = ReplyKeyboardMarkup(keyboard=[
+        [
+            KeyboardButton(text="Обувь"),
+            KeyboardButton(text="Футболка"),
+        ],
+        [
+            KeyboardButton(text="Штаны"),
+            KeyboardButton(text="Нижнее бельё"),
+        ],
+        [
+            KeyboardButton(text="Верхняя одежда"),
+            KeyboardButton(text="Аксессуар")
+        ]
+    ],
+    resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
+)
+
+
+
+# ТЕСТОВАЯ КЛАВИАТУРА
 test_kbd = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -77,8 +116,12 @@ test_kbd = ReplyKeyboardMarkup(
 )
 
 
+
+# АДМИНСКАЯ КЛАВИАТУРА
 admin_kbd = make_kbd(
     "Изменить курс CNY",
-    sizes=(1,)
+    "Получить список товаров",
+    "Информация о чате",
+    sizes=(1,1,1)
 )
 

@@ -2,6 +2,8 @@ from aiogram import Bot
 from aiogram.filters import Filter
 from aiogram.types import Message
 
+from Aiogram.Common.reply_keyboards import categories
+
 
 class ChatFilter(Filter):
     def __init__(self, chat_types: list[str]) -> None:
@@ -25,4 +27,11 @@ class IsNum(Filter):
             if (str(float(text)) == text) or (str(int(text)) == text):
                 return True
         except Exception:
+            return False
+
+class InCategories(Filter):
+    async def __call__(self, message: Message, bot: Bot) -> bool:
+        if (message.text.lower() in categories):
+            return True
+        else:
             return False

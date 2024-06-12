@@ -4,6 +4,7 @@ from aiogram.enums import ParseMode # Указывание Parse Mode для с�
 from aiogram.filters import Command, or_f, Filter, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..Common.filters import ChatFilter, IsAdmin, IsNum
 from ..Common.reply_keyboards import admin_kbd, del_kbd
@@ -18,12 +19,6 @@ ADMINS_LIST = [994559549]
 @admin_R.message(Command('admin'))
 async def chatInfo_command(message: types.Message):
     await message.answer("Вы перенаправлены в меню администратора", reply_markup=admin_kbd)
-
-@admin_R.message(Command('chat_info'))
-async def chatInfo_command(message: types.Message):
-    await message.answer(str(message))
-
-
 
 
 # ОТМЕНА И СБРОС ВВОДА
@@ -56,43 +51,38 @@ async def back(message: types.Message, state: FSMContext) -> None:
 
 
 # УСТАНОВКА КУРСА
-
-# Установка курса CNY
 class SetCurrency(StatesGroup):
     currency = State()
-    val = State()
 
     texts = {
-        "SetCurrency:currency": "Введите курс заново",
-        "SetCurrency:val": "Введите валюту заново"
+        "SetCurrency:currency": "Введите курс заново"
     }
 # Ввод курса
 @admin_R.message(StateFilter(None), or_f(Command('setcurrency'), F.text.lower() == 'изменить курс cny'))
 async def setCurrency(message: types.Message, state: FSMContext):
     await message.answer("Введите курс, который вы хотите установить:", reply_markup=del_kbd)
     await state.set_state(SetCurrency.currency)
-
-# Обработка сообщения и переход к вводу валюты
+# Изменение и сохранение курса валюты
 @admin_R.message(SetCurrency.currency, IsNum())
 async def changeCurrency(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
+    await state.update_data(currency=float(message.text))
     await message.answer("Курс CNY был обновлён")
-    await message.answer("Введите валюту")
-    await state.set_state(SetCurrency.val)
-
-@admin_R.message(SetCurrency.currency)
-async def changeCurrency(message: types.Message):
-    await message.answer("Введены некорректные данные. Повторите ввод")
-
-# Обработка ввода валюты
-@admin_R.message(SetCurrency.val, F.text)
-async def changeCurrency(message: types.Message, state: FSMContext):
-    await state.update_data(val=message.text)
-    await message.answer("Валюта изменена")
     data = await state.get_data()
-    await message.answer(str(data))
+    await message.answer(f"Актуальный курс равен: {data['currency']}", reply_markup=admin_kbd)
     await state.clear()
-
-@admin_R.message(SetCurrency.val)
-async def changeCurrency(message: types.Message):
+@admin_R.message(SetCurrency.currency)
+async def changeCurrencyI(message: types.Message):
     await message.answer("Введены некорректные данные. Повторите ввод")
+
+
+# ПОЛУЧЕНИЕ СПИСКА ТОВАРОВ
+@admin_R.message(or_f(Command('get_products_database'), F.text.lower() == 'получить список товаров'))
+async def setCurrency(message: types.Message, session: AsyncSession):
+    await message.answer("СПИСОК ТОВАРОВ", reply_markup=admin_kbd)
+
+
+
+# ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ЧАТЕ
+@admin_R.message(or_f(F.text.lower() == 'информация о чате', Command('chat_info')))
+async def chatInfo_command(message: types.Message):
+    await message.answer(str(message), reply_markup=admin_kbd)
