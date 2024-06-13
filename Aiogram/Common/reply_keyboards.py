@@ -101,6 +101,8 @@ type_product_kbd = ReplyKeyboardMarkup(keyboard=[
     resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
 )
 
+# Клавиатура редактирования корзины
+cart_actions = make_kbd("Добавить товар", "Изменить товар", "Удалить товар", sizes=(2,1))
 
 
 # ТЕСТОВАЯ КЛАВИАТУРА
@@ -124,4 +126,6 @@ admin_kbd = make_kbd(
     "Информация о чате",
     sizes=(1,1,1)
 )
+
+
 

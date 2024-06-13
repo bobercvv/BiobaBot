@@ -9,6 +9,7 @@ from aiogram.types import BotCommand
 private = [
     BotCommand(command='start', description='Старт бота'),
     BotCommand(command='menu', description='Меню бота'),
+    BotCommand(command='cart', description='Ваша корзина'),
     BotCommand(command='currency', description='Расчёт стоимости товара'),
     BotCommand(command='site', description='Открытие сайта Bioba'),
     BotCommand(command='delivery', description='Узнать, с каких площадок мы можем доставить товар'),

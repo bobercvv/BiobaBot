@@ -19,9 +19,9 @@ from aiogram.enums import ParseMode
 
 # MODULES
 # database
-from Aiogram.Database.orm_query import orm_add_product
+from Aiogram.Database.orm_query import orm_add_product, orm_user_count_items, orm_user_get_cart
 # reply keyboards
-from Aiogram.Common.reply_keyboards import start_kbd, del_kbd, menu_kbd, type_product_kbd, make_kbd
+from Aiogram.Common.reply_keyboards import start_kbd, del_kbd, menu_kbd, type_product_kbd, make_kbd, cart_actions
 # filters
 from Aiogram.Common.filters import IsNum, InCategories
 # currency
@@ -56,7 +56,7 @@ async def back(message: types.Message, state: FSMContext) -> None:
         return
     if str(current_state) == "Cart:action":
         await message.answer("<b>Предыдущего шага нет.</b>\n"
-                             "<i>для отмены изменения корзины и перехода в меню нажмите /cancel</i>", parse_mode=ParseMode.HTML, reply_markup=make_kbd("Добавить товар", "Удалить товар", sizes=(2,)))
+                             "<i>для отмены изменения корзины и перехода в меню нажмите /cancel</i>", parse_mode=ParseMode.HTML, reply_markup=cart_actions)
         await message.answer("Выберите действие, которое хотите совершить")
         return
 
@@ -113,9 +113,31 @@ async def currency_command(message: types.Message):
 # КОРЗИНА
 # Содержимое корзины
 @user_p_R.message(or_f(Command("cart"), F.text.casefold() == 'моя корзина'))
-async def cart_content(message: types.Message):
-    await message.answer("Вот что находится в вашей корзине сейчас:\n\n"
-                         "Для изменения корзины нажмите /edit_cart", reply_markup=del_kbd)
+async def cart_content(message: types.Message, session: AsyncSession):
+    cart_dict = dict()
+    for product in await orm_user_get_cart(session, message.from_user.id):
+        cart_dict[product.user_item_num] = {'name': product.name_product,
+                                            'type': product.type_product,
+                                            'cost': product.cost_product}
+    cart_s_l = [f'<b><i>Товар №{i}</i></b>\n'
+                f'Название: {cart_dict[i]["name"]}\n'
+                f'Категория: {cart_dict[i]["type"]}\n'
+                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n' for i in cart_dict.keys()]
+    cart_str = str()
+    for i in cart_s_l:
+        cart_str += i + "\n"
+
+    await message.answer(f"Вот что находится в вашей корзине сейчас:\n\n"
+                         f"{cart_str}"
+                         f"Для изменения корзины нажмите /edit_cart", parse_mode=ParseMode.HTML, reply_markup=make_kbd("Рассчитать стоимость корзины", sizes=(1,)))
+
+@user_p_R.message(F.text.casefold() == 'рассчитать стоимость корзины')
+async def get_cart_currency(message: types.Message, session: AsyncSession):
+    cart_currency = float()
+    for product in await orm_user_get_cart(session, message.from_user.id):
+        cart_currency += round(float(currencies.TO_RUB('CNY')) * float(product.cost_product), 2)
+    await message.answer(f"Рассчётная стоимость корзины составляет: {cart_currency} RUB\n\n"
+                         f"<i>Для перехода в меню нажмите /menu</i>", parse_mode=ParseMode.HTML, reply_markup=del_kbd)
 
 class Cart(StatesGroup):
     action = State() # выбор действия: удаление или добавление товара в корзине
@@ -124,8 +146,10 @@ class Cart(StatesGroup):
     name_product = State() # ввод наименования товара
     cost_product = State() # ввод стоимости товара в CNY
 
+    num_of_item = State() # Номер товара (для удаления)
+
     texts = {
-        'Cart:action': ["Выберите действие, которое хотите совершить", make_kbd("Добавить товар", "Удалить товар", sizes=(2,))],
+        'Cart:action': ["Выберите действие, которое хотите совершить", cart_actions],
         'Cart:type_product': ["Выберите категорию товара", type_product_kbd],
         'Cart:action_name': ["Желаете добавить наименованеи товара?", make_kbd("Да", "Нет", sizes=(2,))],
         'Cart:name_product': ["Введите наименование товара", del_kbd],
@@ -133,11 +157,25 @@ class Cart(StatesGroup):
 
 # Редактирование корзины
 @user_p_R.message(StateFilter(None), or_f(Command("edit_cart"), F.text.casefold() == 'изменить корзину'))
-async def cart_edit(message: types.Message, state: FSMContext):
+async def cart_edit(message: types.Message, state: FSMContext, session: AsyncSession):
+    cart_dict = dict()
+    for product in await orm_user_get_cart(session, message.from_user.id):
+        cart_dict[product.user_item_num] = {'name': product.name_product,
+                                            'type': product.type_product,
+                                            'cost': product.cost_product}
+    cart_s_l = [f'<b><i>Товар №{i}</i></b>\n'
+                f'Название: {cart_dict[i]["name"]}\n'
+                f'Категория: {cart_dict[i]["type"]}\n'
+                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n' for i in cart_dict.keys()]
+    cart_str = str()
+    for i in cart_s_l:
+        cart_str += i
+
     await message.answer(f"<b>Вот что находится в вашей корзине:</b>\n\n"
-                         f"СОДЕРЖИМОЕ КОРЗИНЫ\n\n"
+                         f"{cart_str}\n\n"
                          f"<i>для перехода в меню нажмите /cancel</i>", parse_mode=ParseMode.HTML)
-    await message.answer(f"Выберите действие, которое хотите совершить\n", reply_markup=make_kbd("Добавить товар", "Удалить товар", sizes=(2,)))
+    await message.answer(f"Выберите действие, которое хотите совершить\n", reply_markup=cart_actions)
+
     await state.set_state(Cart.action)
 
 
@@ -223,10 +261,31 @@ async def cart_add_costI(message: types.Message):
                           "для возврата к выбору наименования товара нажмите /back</i>", parse_mode=ParseMode.HTML)
      await message.answer("Введите стоимость товара в CNY")
 
+
+# УДАЛЕНИЕ товара из корзины
+@user_p_R.message(Cart.action, F.text.lower() == "удалить товар")
+async def cart_edit_add(message: types.Message, state: FSMContext):
+    await state.update_data(action='del')
+    await message.answer("<b>Введите номер товара в корзине, который хотите удалить</b>\n"
+                         f"<i>для отмены удаления товара нажмите /cancel\n"
+                         f"для перехода к выбору действия нажмите /back</i>", parse_mode=ParseMode.HTML)
+    await state.set_state(Cart.num_of_item)
+
+@user_p_R.message(Cart.num_of_item)
+async def cart_edit_add(message: types.Message, state: FSMContext, session: AsyncSession):
+    await state.update_data(action='del')
+    await message.answer("<b>Введите номер товара в корзине, который хотите удалить</b>\n"
+                         f"<i>для отмены удаления товара нажмите /cancel\n"
+                         f"для перехода к выбору действия нажмите /back</i>", parse_mode=ParseMode.HTML)
+    await state.set_state(Cart.num_of_item)
+
+
+
+
 @user_p_R.message(Cart.action)
 async def cart_editI(message: types.Message):
     await message.answer(f"<b>Такой комманды нет.</b>\n"
-                         f"<i>для отмены изменения корзины и перехода в меню нажмите /cancel</i>", parse_mode=ParseMode.HTML, reply_markup=make_kbd("Добавить товар", "Удалить товар", sizes=(2,)))
+                         f"<i>для отмены изменения корзины и перехода в меню нажмите /cancel</i>", parse_mode=ParseMode.HTML, reply_markup=cart_actions)
     await message.answer(f"Выберите действие, которое хотите совершить")
 
 
@@ -250,12 +309,11 @@ async def start_command(message: types.Message):
 # MENU
 @user_p_R.message(or_f(Command("menu"), F.text.lower() == "меню"))
 async def menu_command(message: types.Message):
-    await message.answer_photo(photo='AgACAgIAAxkBAAIDjmZmJuMvfJkQN-JiPQ_sNWMml_5BAAIo2jEbxbYxSzyH8_tpxSHfAQADAgADeAADNQQ')
-    await message.answer("Вы перенаправлены в меню BiobaBot 😤.\n"
-                         "Здесь Вы можете рассчитать примерную стоимость товара с учетом доставки.\n"
-                         "Для оформеления заказа напишите нам в личные сообщения: /contacts",
-                         reply_markup=menu_kbd)
-
+    await message.answer_photo(photo='AgACAgIAAxkBAAIDjmZmJuMvfJkQN-JiPQ_sNWMml_5BAAIo2jEbxbYxSzyH8_tpxSHfAQADAgADeAADNQQ',
+                               caption="Вы перенаправлены в меню BiobaBot 😤.\n"
+                               "Здесь Вы можете рассчитать примерную стоимость товара с учетом доставки.\n"
+                               "Для оформеления заказа напишите нам в личные сообщения: /contacts",
+                               reply_markup=menu_kbd)
 
 
 # SITE

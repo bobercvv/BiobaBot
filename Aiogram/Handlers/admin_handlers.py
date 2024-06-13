@@ -1,6 +1,6 @@
 from aiogram import types, Router, F, Bot  # Библиотека aiogram
 
-from aiogram.enums import ParseMode # Указывание Parse Mode для сообщений (Markdown/HTML)
+from aiogram.enums import ParseMode # Указание Parse Mode для сообщений (Markdown/HTML)
 from aiogram.filters import Command, or_f, Filter, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -13,7 +13,7 @@ from ..Common.reply_keyboards import admin_kbd, del_kbd
 admin_R = Router() #admin_router - роутер для работы с админами
 admin_R.message.filter(ChatFilter(['private']), IsAdmin())
 
-ADMINS_LIST = [994559549]
+ADMINS_LIST = [994559549, 1033874041] # @bobercvv, @belsky
 
 
 @admin_R.message(Command('admin'))
@@ -83,6 +83,7 @@ async def setCurrency(message: types.Message, session: AsyncSession):
 
 
 # ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ЧАТЕ
-@admin_R.message(or_f(F.text.lower() == 'информация о чате', Command('chat_info')))
+@admin_R.message(or_f(F.text.lower() == 'информация о чате', Command('chat_info'), F.text.lower() == 'инфа'))
 async def chatInfo_command(message: types.Message):
+    await message.answer(f"Айдишник: {message.from_user.id}")
     await message.answer(str(message), reply_markup=admin_kbd)

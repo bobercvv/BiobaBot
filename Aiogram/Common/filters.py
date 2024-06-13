@@ -1,8 +1,10 @@
 from aiogram import Bot
 from aiogram.filters import Filter
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from Aiogram.Common.reply_keyboards import categories
+from Aiogram.Database.orm_query import orm_user_count_items
 
 
 class ChatFilter(Filter):
@@ -26,6 +28,8 @@ class IsNum(Filter):
             text = text.replace(',', '.')
             if (str(float(text)) == text) or (str(int(text)) == text):
                 return True
+            else:
+                return False
         except Exception:
             return False
 
