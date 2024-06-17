@@ -13,6 +13,7 @@ private = [
     BotCommand(command='currency', description='Расчёт стоимости товара'),
     BotCommand(command='site', description='Открытие сайта Bioba'),
     BotCommand(command='delivery', description='Узнать, с каких площадок мы можем доставить товар'),
+    BotCommand(command='contacts', description='Наши контакты'),
 ]
 
 # BotCommand(command='chat_info', description='Информация о чате'),

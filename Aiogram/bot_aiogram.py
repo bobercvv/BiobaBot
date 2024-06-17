@@ -22,8 +22,8 @@ dp = Dispatcher()
 
 
 # ROUTERS
-dp.include_router(user_p_R) # Подключение роутера для обчыных пользователей
-dp.include_router(admin_R)
+dp.include_router(user_p_R) # Подключение роутера для обычных пользователей
+dp.include_router(admin_R) # Подключение роутера для админов
 
 # ФУНКЦИИ ДЛЯ РАБОТЫ БД
 async def on_startup(bot):
@@ -34,6 +34,7 @@ async def on_startup(bot):
 
 async def on_shutdown(bot):
     print('бот лег')
+
 
 
 # MAIN FUNCTION

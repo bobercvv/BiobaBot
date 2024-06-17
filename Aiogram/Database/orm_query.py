@@ -26,18 +26,19 @@ async def orm_admin_get_all_products(session: AsyncSession):
     result = await session.execute(query)
     return result.scalars().all()
 
-# Получение товаров из корзины пользователя
+# Получение товаров из корзины конкретного пользователя по id
 async def orm_user_get_cart(session: AsyncSession, user_id: int):
     query = select(Product).where(Product.user_id == user_id)
     result = await session.execute(query)
     return result.scalars().all()
 
-# Получение товара из корзины пользователя
+# Получение товара с переданным номером из корзины пользователя
 async def orm_user_get_item(session: AsyncSession, user_id: int, num_of_item: int):
     query = select(Product).where(Product.user_id == user_id and num_of_item == Product.user_item_num)
     result = await session.execute(query)
     return result.scalars().all()
 
+# Изменение товара в корзине
 async def orm_update_item(session: AsyncSession, product_number: int, data: dict, message: types.Message):
     query = select(Product).where(message.from_user.id == Product.user_id)
     user_item_num = await session.execute(query)
@@ -51,13 +52,13 @@ async def orm_update_item(session: AsyncSession, product_number: int, data: dict
     await session.execute(query)
     await session.commit()
 
-
+# Удаление записи из БД
 async def orm_delete_product(session: AsyncSession, user_id: int, num_of_item: int):
     query = delete(Product).where(Product.user_id == user_id and num_of_item == Product.user_item_num)
     await session.execute(query)
     await session.commit()
 
-# Получение товаров из корзины пользователя
+# Получение числа - количество товаров из корзины пользователя
 async def orm_user_count_items(session: AsyncSession, message: types.Message):
     query = select(Product).where(message.from_user.id == Product.user_id)
     user_item_num = await session.execute(query)

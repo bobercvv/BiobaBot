@@ -1,5 +1,10 @@
+from aiogram import types
 from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, KeyboardButtonPollType
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+
+
+async def del_reply_kbd(message: types.Message):
+    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=message.message_id - 1)
 
 
 def make_kbd(
@@ -72,37 +77,52 @@ start_kbd = ReplyKeyboardMarkup(
 menu_kbd = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text="Расчёт стоимости товара"),
+            KeyboardButton(text="Раcсчёт стоимости товара"),
             KeyboardButton(text="Моя корзина"),
+        ],
+        [
+            KeyboardButton(text="Наши контакты"),
         ],
         [
             KeyboardButton(text="FAQ"),
         ]
     ],
-    resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
+    resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже", one_time_keyboard=True
 )
 
-# КЛАВИАТУРА ТИПОВ ТВОАРОВ
+# КЛАВИАТУРА ТИПОВ ТОВАРОВ
 categories = ["обувь", "футболка", "штаны", "нижнее бельё", "верхняя одежда", "аксессуар"]
 type_product_kbd = ReplyKeyboardMarkup(keyboard=[
         [
             KeyboardButton(text="Обувь"),
             KeyboardButton(text="Футболка"),
-        ],
-        [
             KeyboardButton(text="Штаны"),
-            KeyboardButton(text="Нижнее бельё"),
         ],
         [
+            KeyboardButton(text="Нижнее бельё"),
             KeyboardButton(text="Верхняя одежда"),
             KeyboardButton(text="Аксессуар")
+        ],
+        [
+            KeyboardButton(text="Отменить редактирование"),
+            KeyboardButton(text="Назад")
         ]
     ],
     resize_keyboard=True, input_field_placeholder="Нажмите на одну из кнопок ниже"
 )
 
+# Клавиатура на странице корзины
+cart_kbd = make_kbd("Рассчитать стоимость корзины",
+                    "Изменить корзину",
+                    "Перейти в меню",
+                    sizes=(2,1))
+
 # Клавиатура редактирования корзины
-cart_actions = make_kbd("Добавить товар", "Изменить товар", "Удалить товар", sizes=(2,1))
+cart_actions = make_kbd("Добавить товар",
+                        "Изменить товар",
+                        "Удалить товар",
+                        "Отменить редактирование",
+                        sizes=(3,1,))
 
 
 # ТЕСТОВАЯ КЛАВИАТУРА

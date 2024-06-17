@@ -1,4 +1,4 @@
-from aiogram import Bot
+from aiogram import Bot, types
 from aiogram.filters import Filter
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ class IsAdmin(Filter):
         from ..Handlers.admin_handlers import ADMINS_LIST
         return message.chat.id in ADMINS_LIST
 
-class IsNum(Filter):
+class IsNumMsg(Filter):
     async def __call__(self, message: Message, bot: Bot) -> bool:
         try:
             text = message.text
@@ -33,9 +33,22 @@ class IsNum(Filter):
         except Exception:
             return False
 
+class IsNumCall(Filter):
+    async def __call__(self, callback: types.CallbackQuery, bot: Bot) -> bool:
+        # try:
+        text = callback.data
+        print("FEFE")
+        text = text.replace(',', '.')
+        if (str(float(text)) == text) or (str(int(text)) == text):
+            return True
+        else:
+            return False
+        # except Exception:
+        #     return False
+
 class InCategories(Filter):
-    async def __call__(self, message: Message, bot: Bot) -> bool:
-        if (message.text.lower() in categories):
+    async def __call__(self, callback: types.CallbackQuery, bot: Bot) -> bool:
+        if (callback.data.lower() in categories):
             return True
         else:
             return False
