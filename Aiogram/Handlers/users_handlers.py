@@ -22,7 +22,8 @@ from aiogram.enums import ParseMode
 # database
 from Aiogram.Common.inline_keyboards import cart_kbd_inl, get_callback_btns, cart_actions_inl, kategories_inl, \
     w_or_not_name_inl, back_n_cancel_inl
-from Aiogram.Database.orm_query import orm_add_product, orm_user_count_items, orm_user_get_cart
+from Aiogram.Database.orm_query import orm_add_product, orm_user_count_items, orm_user_get_cart, orm_delete_item, \
+    orm_user_get_item
 # reply keyboards
 from Aiogram.Common.reply_keyboards import start_kbd, del_kbd, menu_kbd, type_product_kbd, make_kbd, cart_actions, \
     cart_kbd
@@ -33,6 +34,7 @@ from Aiogram.Modules import currencies
 # browser - Работа с браузером для перенаправления на сайт
 import webbrowser
 
+from Aiogram.Modules.currencies import TO_RUB
 
 # ROUTER
 user_p_R = Router() # user_private_router - роутер для работы с обработчиками комманд для обычных пользователей
@@ -82,11 +84,7 @@ async def back(callback: types.CallbackQuery, state: FSMContext) -> None:
 class GetCurrency(StatesGroup):
     value = State()
 
-@user_p_R.callback_query(StateFilter(None), F.data == "currency_again")
-async def currency_command(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("Введите стоимость товара в CNY",
-                         parse_mode=ParseMode.HTML, reply_markup=get_callback_btns(btns={"Отменить действие":"cancel"}))
-    await state.set_state(GetCurrency.value)
+
 @user_p_R.message(StateFilter(None), or_f(Command("currency"),
                   F.text.casefold() == 'раcсчёт стоимости товара', F.text.casefold() == "рассчитать стоимость снова"))
 async def currency_command(message: types.Message, state: FSMContext):
@@ -102,6 +100,12 @@ async def currency_command(message: types.Message, state: FSMContext):
                          f"{round(float(currencies.TO_RUB('CNY')) * data['value'], 2)} RUB",
                          reply_markup=get_callback_btns(btns={"Перейти в меню": "go_to_menu", "Рассчитать стоимость снова": "currency_again"}, sizes=(1,)))
     await state.clear()
+
+@user_p_R.callback_query(StateFilter(None), F.data == "currency_again")
+async def currency_command(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Введите стоимость товара в CNY",
+                         parse_mode=ParseMode.HTML, reply_markup=get_callback_btns(btns={"Отменить действие":"cancel"}))
+    await state.set_state(GetCurrency.value)
 
 @user_p_R.message(GetCurrency.value)
 async def currency_command(message: types.Message):
@@ -124,7 +128,8 @@ async def cart_content(message: types.Message, session: AsyncSession):
     cart_s_l = [f'<b><i>Товар №{i}</i></b>\n'
                 f'Название: {cart_dict[i]["name"]}\n'
                 f'Категория: {cart_dict[i]["type"]}\n'
-                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n' for i in cart_dict.keys()]
+                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n'
+                f'Стоимость в рублях: {round(cart_dict[i]["cost"] * TO_RUB("CNY"), 2)}\n' for i in cart_dict.keys()]
     cart_str = str()
     for i in cart_s_l:
         cart_str += i + "\n"
@@ -167,12 +172,13 @@ async def cart_edit(callback: types.CallbackQuery, state: FSMContext, session: A
     cart_s_l = [f'<b><i>Товар №{i}</i></b>\n'
                 f'Название: {cart_dict[i]["name"]}\n'
                 f'Категория: {cart_dict[i]["type"]}\n'
-                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n' for i in cart_dict.keys()]
+                f'Стоимость в CNY: {round(cart_dict[i]["cost"], 2)}\n'
+                f'Стоимость в рублях: {round(cart_dict[i]["cost"] * TO_RUB("CNY"),2)}\n' for i in cart_dict.keys()]
     cart_str = str()
     for i in cart_s_l:
         cart_str += i + "\n"
 
-    await callback.message.answer(f"<b>Вот что находится в вашей корзине сейчас:</b>\n\n"
+    await callback.message.edit_text(f"<b>Вот что находится в вашей корзине сейчас:</b>\n\n"
                          f"{cart_str}", parse_mode=ParseMode.HTML)
     await callback.message.answer(f"Выберите действие, которое хотите совершить\n", reply_markup=cart_actions_inl)
     await state.set_state(Cart.action)
@@ -182,6 +188,7 @@ async def cart_edit(callback: types.CallbackQuery, state: FSMContext, session: A
 @user_p_R.callback_query(Cart.action, F.data == "add_item")
 async def cart_edit_add(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(action='add')
+    await callback.message.delete()
     await callback.message.answer("<b>Вы перешли к добавлению товара</b>\n", parse_mode=ParseMode.HTML)
     await callback.message.answer("Выберите категорию товара", reply_markup=kategories_inl)
     await state.set_state(Cart.type_product)
@@ -190,25 +197,29 @@ async def cart_edit_add(callback: types.CallbackQuery, state: FSMContext):
 @user_p_R.callback_query(Cart.type_product, InCategories())
 async def cart_add_type(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(type_product=callback.data)
-    await callback.message.edit_text("Желаете добавить наименование товара?\n", parse_mode=ParseMode.HTML,
+    await callback.message.delete()
+    await callback.message.answer("Желаете добавить наименование товара?\n", parse_mode=ParseMode.HTML,
                                   reply_markup=w_or_not_name_inl)
     await state.set_state(Cart.action_name)
 @user_p_R.message(Cart.type_product)
 async def cart_add_typeI(message: types.Message):
-    await message.answer(f"<b>Такой категории нет, повторите ввод.</b>\n"
-                            f"Выберите категорию товара",parse_mode=ParseMode.HTML, reply_markup=kategories_inl)
+    await message.delete()
+    await message.answer(f"<b>Такой категории нет. Выберите категорию еще раз.</b>\n", parse_mode=ParseMode.HTML)
 
-# выбор добавления наименования
+# добавление наименования
 @user_p_R.callback_query(Cart.action_name, F.data == "with_name")
 async def cart_add_action_nameY(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     await state.update_data(action_name='with_name')
-
-    await callback.message.edit_text("Введите наименование товара",
+    global d
+    await callback.message.answer("Введите наименование товара",
                                   reply_markup=back_n_cancel_inl)
 
     await state.set_state(Cart.name_product)
+# без наименования
 @user_p_R.callback_query(Cart.action_name, F.data == "without_name")
 async def cart_add_action_nameN(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     await state.update_data(action_name='without_name')
     await state.update_data(name_product='')
 
@@ -216,75 +227,83 @@ async def cart_add_action_nameN(callback: types.CallbackQuery, state: FSMContext
                                   reply_markup=back_n_cancel_inl)
 
     await state.set_state(Cart.cost_product)
-@user_p_R.callback_query(Cart.action_name)
-async def cart_add_action_nameI(callback: types.CallbackQuery):
-    await callback.message.answer(f"<b>Некорректый ввод. Повторите попытку.</b>\n"
-                                     f"Желаете добавить наименование товара?",
-                                     parse_mode=ParseMode.HTM, reply_markup=back_n_cancel_inl)
+@user_p_R.message(Cart.action_name)
+async def cart_add_action_nameI(message: types.Message):
+    await message.delete()
+    await message.answer(f"<b>Некорректый ввод. Повторите попытку.</b>\n", parse_mode=ParseMode.HTML)
 
 # добавление наименования товара
 @user_p_R.message(Cart.name_product, F.text)
 async def cart_add_name(message: types.Message, state: FSMContext):
     await state.update_data(name_product=message.text)
-
     await message.answer("Введите стоимость товара в CNY",
                          reply_markup=back_n_cancel_inl)
 
     await state.set_state(Cart.cost_product)
 @user_p_R.message(Cart.name_product)
 async def cart_add_nameI(message: types.Message):
-    await message.answer("<b>Недопустимое наименование. Повторите ввод.</b>\n", parse_mode=ParseMode.HTML,
-                         reply_markup=back_n_cancel_inl)
+    await message.answer("<b>Недопустимое наименование. Повторите ввод.</b>\n",
+                         parse_mode=ParseMode.HTML)
 
 # стоимость товара и запись данных в БД
 @user_p_R.message(Cart.cost_product, F.text, IsNumMsg())
 async def cart_add_cost(message: types.Message, state: FSMContext, session: AsyncSession):
     await state.update_data(cost_product=float(message.text))
     data = await state.get_data()
-    if data['action_name'] == 'no':  data['name_product'] = data['type_product']
+    if data['action_name'] == 'without_name':  data['name_product'] = data['type_product']
 
-    try:
-        # Добавление записи о товаре в БД
-        await orm_add_product(message, session, data)
-        # Сообщение об успешном занесении данных и очищение состояния
-        await message.answer(f"<b>Данный товар был успешно добавлен в корзину:</b>\n\n"
-                             f"<b>{data['name_product']}</b>\n"
-                             f"Категория товара: {data['type_product']}\n"
-                             f"Стоимость товара в CNY: {data['cost_product']}\n", parse_mode=ParseMode.HTML,
-                             reply_markup=cart_actions_inl)
-        await state.clear()
-    except Exception:
-        await message.answer("<b>Ошибка добавления товара в корзину.</b>\nОбратитесь в поддержку:\n@bobercvv", parse_mode=ParseMode.HTML)
-        await state.clear()
-        await menu_command(message)
+    # try:
+    # Добавление записи о товаре в БД
+    await orm_add_product(message, session, data)
+    # Сообщение об успешном занесении данных и очищении состояния
+    await message.answer(f"<b>Данный товар был успешно добавлен в корзину:</b>\n\n"
+                         f"<b>{data['name_product']}</b>\n"
+                         f"Категория товара: {data['type_product']}\n"
+                         f"Стоимость в CNY: {data['cost_product']}\n"
+                         f"Стоимость в рублях: {round(data['cost_product'] * float(TO_RUB("CNY")),2)}\n", parse_mode=ParseMode.HTML,
+                         reply_markup=del_kbd)
+    await state.clear()
+    # except Exception:
+    #     await message.answer("<b>Ошибка добавления товара в корзину.</b>\nОбратитесь в поддержку:\n@bobercvv", parse_mode=ParseMode.HTML)
+    #     await state.clear()
+    #     await menu_command(message)
 @user_p_R.message(Cart.cost_product)
 async def cart_add_costI(message: types.Message):
+     await message.delete()
      await message.answer("<b>Некорректный ввод. Повторите попытку</b>\n", parse_mode=ParseMode.HTML)
-     await message.answer("Введите стоимость товара в CNY", reply_markup=cart_actions_inl)
 
 
 # УДАЛЕНИЕ товара из корзины
-@user_p_R.message(Cart.action, F.text.lower() == "удалить товар")
-async def cart_edit_add(message: types.Message, state: FSMContext):
+@user_p_R.callback_query(Cart.action, F.data == "delete_item")
+async def cart_edit_del(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(action='del')
-    await message.answer("<b>Введите номер товара в корзине, который хотите удалить</b>\n", parse_mode=ParseMode.HTML,
-                         reply_markup=make_kbd("Назад", "Отменить редактирование", sizes=(2,)))
+    await callback.message.delete()
+    await callback.message.answer("<b>Введите номер товара в корзине, который хотите удалить</b>\n",
+                                  parse_mode=ParseMode.HTML, reply_markup=back_n_cancel_inl)
     await state.set_state(Cart.num_of_item)
 
-@user_p_R.message(Cart.num_of_item)
-async def cart_edit_add(message: types.Message, state: FSMContext, session: AsyncSession):
-    await state.update_data(action='del')
-    await message.answer("<b>Введите номер товара в корзине, который хотите удалить</b>\n", parse_mode=ParseMode.HTML)
-    await state.set_state(Cart.num_of_item)
+@user_p_R.message(Cart.num_of_item, IsNumMsg())
+async def cart_edit_del_num_item(message: types.Message, state: FSMContext, session: AsyncSession):
+    del_item_data = {}
+    for product in await orm_user_get_item(session, message.from_user.id, int(message.text)):
+        del_item_data["name"] = product.name_product
+        del_item_data["type"] = product.type_product
+        del_item_data["cost"] = product.cost_product
+    await orm_delete_item(session, message.from_user.id, int(message.text))
+    await message.answer(f"<b>Товар №{message.text}</b>\n"
+                         f"С наименованием: {del_item_data['name']}\n"
+                         f"Стоимостью {round(del_item_data["cost"],2)} CNY\n\n"
+                         f"<i>был успешно удалён из вашей корзины.</i>", parse_mode=ParseMode.HTML)
+    await state.clear()
 
 
 
 
 @user_p_R.message(Cart.action)
 async def cart_editI(message: types.Message):
+    await message.delete()
     await message.answer(f"<b>Такой комманды нет.</b>\n",
                          parse_mode=ParseMode.HTML)
-    await message.answer(f"Выберите действие, которое хотите совершить", reply_markup=cart_actions_inl)
 
 
 
@@ -307,6 +326,7 @@ async def start_command(message: types.Message):
 # MENU
 @user_p_R.callback_query(StateFilter(None), F.data == 'go_to_menu')
 async def menu_command_call(callback: types.CallbackQuery):
+    await callback.message.edit_reply_markup(reply_markup=del_kbd)
     await callback.message.answer_photo(photo='AgACAgIAAxkBAAIDjmZmJuMvfJkQN-JiPQ_sNWMml_5BAAIo2jEbxbYxSzyH8_tpxSHfAQADAgADeAADNQQ',
                                caption="Вы перенаправлены в меню BiobaBot 😤.\n"
                                "Здесь Вы можете рассчитать примерную стоимость товара с учетом доставки.",

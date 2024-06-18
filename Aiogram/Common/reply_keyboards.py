@@ -3,10 +3,6 @@ from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButt
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 
-async def del_reply_kbd(message: types.Message):
-    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=message.message_id - 1)
-
-
 def make_kbd(
         *btns: str,
         placeholder: str = None,

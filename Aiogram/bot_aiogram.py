@@ -35,6 +35,8 @@ async def on_startup(bot):
 async def on_shutdown(bot):
     print('бот лег')
 
+async def acc(text):
+    await bot.answer_callback_query(text=text)
 
 
 # MAIN FUNCTION

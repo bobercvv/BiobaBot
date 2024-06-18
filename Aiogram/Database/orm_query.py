@@ -53,7 +53,7 @@ async def orm_update_item(session: AsyncSession, product_number: int, data: dict
     await session.commit()
 
 # Удаление записи из БД
-async def orm_delete_product(session: AsyncSession, user_id: int, num_of_item: int):
+async def orm_delete_item(session: AsyncSession, user_id: int, num_of_item: int):
     query = delete(Product).where(Product.user_id == user_id and num_of_item == Product.user_item_num)
     await session.execute(query)
     await session.commit()
