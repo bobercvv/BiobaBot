@@ -52,9 +52,20 @@ async def orm_update_item(session: AsyncSession, product_number: int, data: dict
     await session.execute(query)
     await session.commit()
 
+# Удаление корзины пользователя
+async def orm_clean_cart(session: AsyncSession, user_id: int):
+    query = delete(Product).where(Product.user_id == user_id)
+    await session.execute(query)
+    await session.commit()
+
 # Удаление записи из БД
 async def orm_delete_item(session: AsyncSession, user_id: int, num_of_item: int):
-    query = delete(Product).where(Product.user_id == user_id and num_of_item == Product.user_item_num)
+    query = delete(Product).where(Product.user_id == user_id).where(Product.user_item_num == num_of_item)
+    await session.execute(query)
+    await session.commit()
+    query = select(Product).where(user_id == Product.user_id)
+    for n in range(1, len(list(await session.execute(query)))+1):
+        query = update(Product).where(user_id == Product.user_id).where(Product.user_item_num == n+1).values(user_item_num=n)
     await session.execute(query)
     await session.commit()
 

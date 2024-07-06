@@ -42,6 +42,7 @@ def get_inlineMix_btns(
     return keyboard.adjust(*sizes).as_markup()
 
 cart_kbd_inl = get_callback_btns(btns={"Изменить корзину": "to_edit_cart",
+                                       "Очистить корзину": "to_clean_cart",
                                        "Рассчитать стоимость корзины": "get_cost_cart"},sizes=(1,1))
 
 cart_actions_inl = get_callback_btns(btns={"Добавить товар": "add_item",
@@ -64,3 +65,5 @@ w_or_not_name_inl = get_callback_btns(btns={"Да": "with_name",
                                         "Отменить редактирование":"cancel"}, sizes=(2,1,1))
 
 back_n_cancel_inl = get_callback_btns(btns={"Назад":"back", "Отменить редактирование":"cancel"}, sizes=(2,))
+
+go_to_cart = get_callback_btns(btns={"Перейти к корзине":"to_cart"}, sizes=(2,))

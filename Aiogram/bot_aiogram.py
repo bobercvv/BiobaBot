@@ -6,8 +6,6 @@ load_dotenv(find_dotenv()) # получение всех данных из .env
 # AIOGRAM
 from aiogram import Bot, Dispatcher, types  # Импорт библиотеки aiogram
 import asyncio # импорт библиотеки для работы с асинхронными функциями
-from aiogram.enums import ParseMode # Выбор режима парса для отправляемых сообщений
-from aiogram.fsm.strategy import FSMStrategy # Параметры в диспетчре для машины состояний FSM
 
 # MODULES
 from Handlers.users_handlers import user_p_R # Роутер обработки данных от пользователей
